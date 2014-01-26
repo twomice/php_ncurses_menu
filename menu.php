@@ -36,14 +36,11 @@ $menu->render();
 global $active_menu;
 $active_menu = $menu;
 
-
-while ($pressed != NCURSES_ESCAPE_KEY){ // until the user hits ESC.
-  // get key input
-  $pressed = ncurses_getch();// wait for a user keypres
-  $active_menu->process_chr($pressed);
+while (1) {
+// get key input
+$pressed = ncurses_getch();// wait for a user keypres
+$active_menu->process_chr($pressed);
 }
-menu_end();
-
 
 function debug($line_string) {
   static $line = 20;

@@ -84,6 +84,11 @@ class menu {
           $active_menu = $this->parent_item->menu;
           $this->close();
         }
+        // If there's no parent item (meaning we're at the root menu),
+        // and only if user pressed escape, just exit;
+        elseif ($chr == NCURSES_ESCAPE_KEY) {
+          menu_end();
+        }
         break;
       case NCURSES_KEY_RIGHT:
       case 13:
