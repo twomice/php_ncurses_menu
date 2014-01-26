@@ -1,0 +1,13 @@
+# Sample configuration. 
+# Edit and save as menu.conf.
+# Blank lines and lines starting with '#' are ignored.
+# Underline a character to indicate hotkey; otherwise, first 
+# character is hotkey.
+# Nest sub-menus using leading spaces (not leading tabs).
+
+g_edit "gedit /etc/passwd"
+xterm
+Other _tools
+  konqueror
+  "My _custom command" ~/custom.sh
+
