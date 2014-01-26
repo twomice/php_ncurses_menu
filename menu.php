@@ -1,5 +1,7 @@
 #!/usr/bin/php
 <?php 
+// Set to 1 to enable debug log via dump() function.
+define('MENU_DEBUG', 0);
 dump('======================= start');
 
 error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED);
@@ -103,6 +105,9 @@ function menu_build_label($string) {
 }
 
 function dump($value, $label = NULL) {
+  if (!MENU_DEBUG) {
+    return;
+  }
   $fp = fopen('/tmp/log.txt', 'a');
   if ($label) { 
     fwrite($fp, $label . "\n");
