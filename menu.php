@@ -4,6 +4,9 @@
 define('MENU_DEBUG', 0);
 dump('======================= start');
 
+start_pidfile();
+kill_other_pids();
+
 error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED);
 define("NCURSES_ESCAPE_KEY", 27);
 
@@ -59,6 +62,7 @@ function menu_end($cmd = NULL) {
     // while waiting for the command to exit.
     exec('nohup '. $cmd . ' > /dev/null & ');
   }
+  kill_pidfile();
   exit;
 }
 
@@ -105,7 +109,8 @@ function dump($value, $label = NULL) {
   if (!MENU_DEBUG) {
     return;
   }
-  $fp = fopen('/tmp/log.txt', 'a');
+  $tmp = get_temp_dir();
+  $fp = fopen($tmp . 'log.txt', 'a');
   if ($label) { 
     fwrite($fp, $label . "\n");
   }
@@ -228,3 +233,48 @@ function prompt_exit() {
   menu_end(); 
 } 
   
+function name_pidfile($pid) {
+  return $tmp . 'php_ncurses_menu.pid.'. $pid;
+}
+
+function name_my_pidfile() {
+  $mypid = getmypid();
+  $pidfile = name_pidfile($mypid);
+  return $pidfile;
+}
+
+function start_pidfile() {
+  $pidfile = name_my_pidfile();
+  $fp = fopen($pidfile, 'w');
+  fwrite($fp, $mypid);
+  fclose($fp);
+}
+
+function kill_pidfile() {
+  $pidfile = name_my_pidfile();
+  unlink($pidfile);
+}
+
+function kill_other_pids() {
+  $pidfile = name_pidfile('*');
+  $pidfiles = glob($pidfile);
+  $mypidfile = name_my_pidfile();
+  foreach ($pidfiles as $file) {
+    if ($file != $mypidfile) {
+      unlink($file);
+      dump ("unlinking $file");
+      $filename_parts = array_reverse(explode('.', $file));
+      $pid = $filename_parts[0];
+      dump("killing pid $pid");
+      exec("kill $pid");
+    }
+  }
+}
+
+function get_temp_dir() {
+  static $tmp;
+  if (!isset($tmp)) {
+    $tmp = rtrim(sys_get_temp_dir(), '/'). '/';
+  }
+  return $tmp;
+}
