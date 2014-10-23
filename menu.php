@@ -28,10 +28,8 @@ ncurses_refresh();// paint the window
 // debug("height: $y; width: $x");
 
 require_once 'menu.class.php';
-$menu_config = get_menu_config();
-$menu_data = get_menu_data($menu_config);
-
 $menu_data = get_menu_from_config();
+dump($menu_data, 'menu_data');
 normalize_menu($menu_data);
 $menu = new menu($menu_data);
 $menu->render();
@@ -55,50 +53,18 @@ function debug($line_string) {
 }
 
 function menu_end($cmd = NULL) {
+  dump('menu_end');
   ncurses_end();// clean up our screen
   if ($cmd) {
+    dump('cmd: '. $cmd);
     // Issue command with NOHUP so it doesn't die when we exit;
     // Pipe output to /dev/null so that PHP execution doesn't hang up
     // while waiting for the command to exit.
-    exec('nohup '. $cmd . ' > /dev/null & ');
+    dump('nohup '. $cmd . ' > /dev/null 2>&1 & ');
+    exec('nohup '. $cmd . ' > /dev/null 2>&1 & ');
   }
   kill_pidfile();
   exit;
-}
-
-function get_menu_config() {
-  $menu_config = array(
-    'gedit',
-    'x_term' => 'xterm',
-    'more stuff' => array(
-      'firefox',
-      'xterm',
-    ),
-    'more stuff 2' => array(
-      'firefox',
-      'xterm',
-    ),
-  );
-  return $menu_config;
-}
-
-function get_menu_data($menu_config) {
-  $menu_data = array();
-  foreach ($menu_config as $label => $item) {
-    if (is_int($label)) {
-      $label = $item;
-    }
-    $menu_item = array();
-    $menu_item['label'] = menu_build_label($label);
-    if (is_array($item)) {
-      $menu_item['menu'] = get_menu_data($item);
-    }
-    else {
-      $menu_item['command'] = $item;
-    }
-    $menu_data[] = $menu_item;
-  }
-  return $menu_data;
 }
 
 function menu_build_label($string) {
@@ -140,6 +106,19 @@ function get_menu_from_config() {
     prompt_exit();
   }
 
+  // Skip compiling the array if it's available in cache.
+  if (file_exists($config_dir . '/menu_data.cache')) {
+    dump('Retrieving menu array from cache,');
+    if (filemtime($config_dir . '/menu_data.cache') > ($config_dir . '/menu.conf')) {
+      $menu_config = unserialize(file_get_contents($config_dir . '/menu_data.cache'));
+      if (is_array($menu_config)) {
+        return $menu_config;
+      }
+    }
+  }
+
+  dump('Compiling menu array from config file,');
+  
   $config = file($config_file);
   
   // Define an array to hold the final menu tree.
@@ -222,6 +201,15 @@ function get_menu_from_config() {
       $my_menu[] = $line;
     } 
   }
+
+  // Cache array for future use.
+  if (is_array($menu_config)) {
+    dump('Writing menu array to cache,');
+    $fp = fopen($config_dir . '/menu_data.cache', 'w');
+    fwrite($fp, serialize($menu_config));
+    fclose($fp);
+  }
+
   return $menu_config;
 }
 
@@ -234,7 +222,7 @@ function prompt_exit() {
 } 
   
 function name_pidfile($pid) {
-  return $tmp . 'php_ncurses_menu.pid.'. $pid;
+  return sys_get_temp_dir() . '/php_ncurses_menu.pid.'. $pid;
 }
 
 function name_my_pidfile() {
@@ -246,11 +234,12 @@ function name_my_pidfile() {
 function start_pidfile() {
   $pidfile = name_my_pidfile();
   $fp = fopen($pidfile, 'w');
-  fwrite($fp, $mypid);
+  fwrite($fp, getmypid());
   fclose($fp);
 }
 
 function kill_pidfile() {
+  dump('kill pidfile');
   $pidfile = name_my_pidfile();
   unlink($pidfile);
 }
